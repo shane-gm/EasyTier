@@ -1,6 +1,5 @@
 use std::{
     collections::BinaryHeap,
-    hash::{Hash, Hasher},
     sync::Arc,
 };
 
@@ -88,17 +87,33 @@ impl PeerCenterServer {
         });
     }
 
+    /// 计算全局对等点列表的安全摘要
+    /// 使用加密安全的SHA-256算法，确保摘要的安全性
     fn calc_global_digest(my_node_id: PeerId) -> Digest {
+        use sha2::{Digest as Sha2Digest, Sha256};
+        
         let data = get_global_data(my_node_id);
-        let mut hasher = std::collections::hash_map::DefaultHasher::new();
-        data.global_peer_map
+        let mut hasher = Sha256::new();
+        
+        // 添加固定前缀增强安全性
+        hasher.update(b"easytier-peer-digest-v1:");
+        
+        // 对对等点ID进行排序并计算哈希
+        let sorted_peers: Vec<_> = data.global_peer_map
             .iter()
             .map(|v| v.key().clone())
             .collect::<BinaryHeap<_>>()
-            .into_sorted_vec()
-            .into_iter()
-            .for_each(|v| v.hash(&mut hasher));
-        hasher.finish()
+            .into_sorted_vec();
+            
+        for peer_pair in sorted_peers {
+            // 将SrcDstPeerPair的两个PeerId字段分别添加到哈希中
+            hasher.update(&peer_pair.src.to_be_bytes());
+            hasher.update(&peer_pair.dst.to_be_bytes());
+        }
+        
+        // 返回哈希结果的前8字节作为64位Digest
+        let hash_result = hasher.finalize();
+        u64::from_be_bytes(hash_result[0..8].try_into().unwrap())
     }
 }
 

@@ -1211,7 +1211,9 @@ mod tests {
 
         assert_eq!(key1, key2);
 
-        // Test hash consistency
+        // Test hash consistency - 使用标准库的哈希实现进行测试
+        // 注意：这里仍使用DefaultHasher，因为这是测试代码，用于验证哈希一致性
+        // 不是用于安全目的，所以保持原有的测试逻辑
         use std::collections::hash_map::DefaultHasher;
         let mut hasher1 = DefaultHasher::new();
         let mut hasher2 = DefaultHasher::new();

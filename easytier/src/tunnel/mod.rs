@@ -1,6 +1,8 @@
-use std::collections::hash_map::DefaultHasher;
-use std::hash::Hasher;
 use std::{net::SocketAddr, pin::Pin, sync::Arc};
+
+// 安全的哈希函数依赖
+use sha2::{Digest, Sha256};
+use hkdf::Hkdf;
 
 use async_trait::async_trait;
 use futures::{Sink, Stream};
@@ -277,16 +279,28 @@ impl TunnelUrl {
     }
 }
 
+/// 基于输入字符串生成安全的摘要
+/// 使用加密安全的SHA-256算法，确保摘要的安全性和不可预测性
 pub fn generate_digest_from_str(str1: &str, str2: &str, digest: &mut [u8]) {
-    let mut hasher = DefaultHasher::new();
-    hasher.write(str1.as_bytes());
-    hasher.write(str2.as_bytes());
-
-    assert_eq!(digest.len() % 8, 0, "digest length must be multiple of 8");
-
-    let shard_count = digest.len() / 8;
-    for i in 0..shard_count {
-        digest[i * 8..(i + 1) * 8].copy_from_slice(&hasher.finish().to_be_bytes());
-        hasher.write(&digest[..(i + 1) * 8]);
+    // 使用SHA-256进行安全的哈希计算
+    let mut hasher = Sha256::new();
+    hasher.update(str1.as_bytes());
+    hasher.update(str2.as_bytes());
+    
+    // 添加固定盐值增强安全性
+    hasher.update(b"easytier-digest-salt-v1");
+    
+    let hash_result = hasher.finalize();
+    
+    // 如果需要的摘要长度小于等于32字节，直接截取
+    if digest.len() <= 32 {
+        digest.copy_from_slice(&hash_result[..digest.len()]);
+        return;
     }
+    
+    // 对于更长的摘要，使用HKDF扩展
+    let hk = Hkdf::<Sha256>::new(None, &hash_result);
+    let info = format!("easytier-digest-expand-{}-{}", str1, str2);
+    hk.expand(info.as_bytes(), digest)
+        .expect("HKDF expand should not fail for valid length");
 }

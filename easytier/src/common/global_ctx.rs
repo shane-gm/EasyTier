@@ -1,8 +1,8 @@
-use std::collections::hash_map::DefaultHasher;
-use std::{
-    hash::Hasher,
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
+
+// 安全的密钥派生依赖
+use hkdf::Hkdf;
+use sha2::Sha256;
 
 use crate::common::config::ProxyNetworkConfig;
 use crate::common::stats_manager::StatsManager;
@@ -286,43 +286,41 @@ impl GlobalCtx {
         self.config.set_flags(flags);
     }
 
+    /// 生成128位加密密钥，使用加密安全的HKDF算法
+    /// 基于网络密钥和网络名称派生，确保密钥的唯一性和安全性
     pub fn get_128_key(&self) -> [u8; 16] {
+        let network_identity = self.config.get_network_identity();
+        let secret = network_identity.network_secret.unwrap_or_default();
+        let network_name = &network_identity.network_name;
+        
+        // 使用HKDF进行安全的密钥派生
+        let hk = Hkdf::<Sha256>::new(None, secret.as_bytes());
         let mut key = [0u8; 16];
-        let secret = self
-            .config
-            .get_network_identity()
-            .network_secret
-            .unwrap_or_default();
-        // fill key according to network secret
-        let mut hasher = DefaultHasher::new();
-        hasher.write(secret.as_bytes());
-        key[0..8].copy_from_slice(&hasher.finish().to_be_bytes());
-        hasher.write(&key[0..8]);
-        key[8..16].copy_from_slice(&hasher.finish().to_be_bytes());
-        hasher.write(&key[0..16]);
+        
+        // 使用网络名称作为info参数，确保不同网络产生不同密钥
+        let info = format!("easytier-128bit-key-{}", network_name);
+        hk.expand(info.as_bytes(), &mut key)
+            .expect("HKDF expand should not fail for valid length");
+        
         key
     }
 
+    /// 生成256位加密密钥，使用加密安全的HKDF算法
+    /// 基于网络密钥和网络名称派生，确保密钥的唯一性和安全性
     pub fn get_256_key(&self) -> [u8; 32] {
+        let network_identity = self.config.get_network_identity();
+        let secret = network_identity.network_secret.unwrap_or_default();
+        let network_name = &network_identity.network_name;
+        
+        // 使用HKDF进行安全的密钥派生
+        let hk = Hkdf::<Sha256>::new(None, secret.as_bytes());
         let mut key = [0u8; 32];
-        let secret = self
-            .config
-            .get_network_identity()
-            .network_secret
-            .unwrap_or_default();
-        // fill key according to network secret
-        let mut hasher = DefaultHasher::new();
-        hasher.write(secret.as_bytes());
-        hasher.write(b"easytier-256bit-key"); // 添加固定盐值以区分128位和256位密钥
-
-        // 生成32字节密钥
-        for i in 0..4 {
-            let chunk_start = i * 8;
-            let chunk_end = chunk_start + 8;
-            hasher.write(&key[0..chunk_start]);
-            hasher.write(&[i as u8]); // 添加索引以确保每个8字节块都不同
-            key[chunk_start..chunk_end].copy_from_slice(&hasher.finish().to_be_bytes());
-        }
+        
+        // 使用网络名称作为info参数，确保不同网络产生不同密钥
+        let info = format!("easytier-256bit-key-{}", network_name);
+        hk.expand(info.as_bytes(), &mut key)
+            .expect("HKDF expand should not fail for valid length");
+        
         key
     }
 
