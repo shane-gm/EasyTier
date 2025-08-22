@@ -825,6 +825,14 @@ impl ConfigLoader for TomlConfigLoader {
 
         let mut config = self.config.lock().unwrap().clone();
         config.flags = Some(flag_map);
+        
+        // 隐藏 network_secret 信息，避免敏感信息泄漏
+        if let Some(ref mut network_identity) = config.network_identity {
+            if network_identity.network_secret.is_some() && !network_identity.network_secret.as_ref().unwrap().is_empty() {
+                network_identity.network_secret = Some("***HIDDEN***".to_string());
+            }
+        }
+        
         toml::to_string_pretty(&config).unwrap()
     }
 }
