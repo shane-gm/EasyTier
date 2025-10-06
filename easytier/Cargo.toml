@@ -152,7 +152,7 @@ bitflags = "2.5"
 aes-gcm = { version = "0.10.3", optional = true }
 openssl = { version = "0.10", optional = true, features = ["vendored"] }
 # for secure key derivation
-sha2 = "0.10"
+# sha2 = "0.10"
 hkdf = "0.12"
 
 # for cli
