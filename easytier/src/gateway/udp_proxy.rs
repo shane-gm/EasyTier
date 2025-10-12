@@ -183,7 +183,7 @@ impl UdpNatEntry {
                 tracing::trace!(?len, ?src_socket, "udp nat packet response received");
 
                 let ret_buf = cur_buf.split();
-                // 安全地发送数据，如果接收端关闭则退出循环
+                // safely send data, if the receiver is closed, exit the loop
                 if s.send((ret_buf, len, src_socket)).await.is_err() {
                     tracing::debug!("udp nat packet sender channel closed, exiting recv task");
                     break;
