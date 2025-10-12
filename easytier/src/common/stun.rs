@@ -132,8 +132,13 @@ struct BindRequestResponse {
 }
 
 impl BindRequestResponse {
-    pub fn get_mapped_addr_no_check(&self) -> &SocketAddr {
-        self.mapped_socket_addr.as_ref().unwrap()
+    /// 获取映射地址，如果不存在则返回错误
+    /// 
+    /// # Returns
+    /// 
+    /// 返回映射的socket地址，如果不存在则返回Error
+    pub fn get_mapped_addr_no_check(&self) -> Result<&SocketAddr, Error> {
+        self.mapped_socket_addr.as_ref().ok_or(Error::Unknown)
     }
 }
 
@@ -267,9 +272,8 @@ impl StunClient {
         for _ in 0..self.req_repeat {
             let tid = rand::random::<u32>();
             // let tid = 1;
+            // 缓冲区已经初始化为零，无需额外清零操作
             let mut buf = [0u8; 28];
-            // memset buf
-            unsafe { std::ptr::write_bytes(buf.as_mut_ptr(), 0, buf.len()) };
 
             let mut message =
                 Message::<Attribute>::new(MessageClass::Request, BINDING, u32_to_tid(tid));
