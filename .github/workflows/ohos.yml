@@ -2,9 +2,9 @@ name: EasyTier OHOS
 
 on:
   push:
-    branches: ["develop", "main", "releases/**"]
+    branches: ["main"]
   pull_request:
-    branches: ["develop", "main"]
+    branches: ["main"]
   workflow_dispatch:
 
 env:
