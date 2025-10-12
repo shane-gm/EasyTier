@@ -1,0 +1,10 @@
+[package]
+name = "test_ip_comparison"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+
+[[bin]]
+name = "main"
+path = "src/main.rs"
