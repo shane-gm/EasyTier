@@ -5,7 +5,9 @@
 set -euo pipefail
 
 # --- System dependencies (Ubuntu) --------------------------------------------
-# protoc            : RPC / protobuf code generation used across the workspace
+# protobuf-compiler : protoc, used for RPC / protobuf code generation
+# libprotobuf-dev   : the well-known .proto files (google/protobuf/*.proto);
+#                     required because protoc imports them at build time
 # libssl-dev        : OpenSSL headers (some crates link against system OpenSSL)
 # pkg-config/clang  : native builds + bindgen (e.g. kcp-sys)
 # bridge-utils      : required by the core integration tests
@@ -13,6 +15,7 @@ export DEBIAN_FRONTEND=noninteractive
 sudo apt-get update
 sudo apt-get install -y --no-install-recommends \
     protobuf-compiler \
+    libprotobuf-dev \
     libssl-dev \
     pkg-config \
     build-essential \
