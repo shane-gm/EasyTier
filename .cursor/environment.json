@@ -1,0 +1,4 @@
+{
+  "name": "EasyTier",
+  "install": "bash .cursor/install.sh"
+}
